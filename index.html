@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04050a">
+<title>Mr Ai Xenon — Free Fire Like API</title>
+<meta name="description" content="Mr Ai Xenon — premium Free Fire like API for the BD server. Instant delivery, live limit tracking, fair billing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04050a;--panel:#0b0e18;--line:rgba(255,255,255,.06);--line-2:rgba(255,255,255,.11);--txt:#f1f3fb;--mut:#8b92ad;--mut-2:#585f78;--acc:#8b7cff;--acc-2:#4fd1ff;--acc-3:#ff7ab8;--grn:#20e3a2;--red:#ff5d72;--amb:#ffbb33;--grad:linear-gradient(135deg,#8b7cff 0%,#4fd1ff 100%);--r:18px;--r-sm:12px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:"Manrope",system-ui,-apple-system,sans-serif;min-height:100vh;overflow-x:hidden;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;letter-spacing:0}
+a{color:inherit;text-decoration:none}
+.bg{position:fixed;inset:0;z-index:-3;background:radial-gradient(ellipse 80% 50% at 50% -5%,rgba(139,124,255,.20),transparent 55%),radial-gradient(ellipse 50% 40% at 100% 15%,rgba(79,209,255,.12),transparent 60%),radial-gradient(ellipse 50% 40% at 0% 90%,rgba(255,122,184,.08),transparent 60%),var(--bg)}
+.bg-lines{position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.5;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:72px 72px;mask-image:radial-gradient(ellipse 70% 45% at 50% 0%,#000 10%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 70% 45% at 50% 0%,#000 10%,transparent 70%)}
+.bg-noise{position:fixed;inset:0;z-index:-2;opacity:.03;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+#fx{position:fixed;inset:0;z-index:-1;pointer-events:none}
+nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px max(20px,env(safe-area-inset-left));background:rgba(4,5,10,.65);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:17px}
+.brand-mark{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--grad);position:relative;box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 10px 24px -10px rgba(139,124,255,.8)}
+.brand-mark svg{width:19px;height:19px;fill:#fff}
+.brand .name{letter-spacing:-.02em;font-weight:700}
+.brand .name em{font-style:normal;font-weight:800;background:linear-gradient(100deg,#a89cff 0%,#4fd1ff 50%,#ff7ab8 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav-r{display:flex;align-items:center;gap:9px}
+.btn{position:relative;border:0;cursor:pointer;font:inherit;font-weight:700;font-size:14px;color:#fff;padding:12px 22px;border-radius:11px;background:var(--grad);display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .18s,box-shadow .25s,filter .25s;box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 12px 26px -12px rgba(139,124,255,.9);letter-spacing:-.01em}
+.btn:hover{transform:translateY(-1.5px);filter:brightness(1.06)}
+.btn:active{transform:translateY(0) scale(.985)}
+.btn.ghost{background:rgba(255,255,255,.035);border:1px solid var(--line-2);box-shadow:none;color:var(--txt)}
+.btn.ghost:hover{background:rgba(255,255,255,.065);border-color:rgba(255,255,255,.2)}
+.btn.danger{background:rgba(255,93,114,.1);border:1px solid rgba(255,93,114,.4);color:var(--red);box-shadow:none}
+.btn.sm{padding:8px 14px;font-size:12.5px;border-radius:9px}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.6;pointer-events:none}
+.btn svg{width:16px;height:16px;fill:currentColor;flex-shrink:0}
+.spin{width:16px;height:16px;border:2.2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+main{max-width:1040px;margin:0 auto;padding:0 20px 60px}
+section{padding:44px 0}
+.hide{display:none!important}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .85s cubic-bezier(.2,.7,.2,1),transform .85s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.hero{min-height:calc(100vh - 69px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px 0 60px;position:relative}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:10.5px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:rgba(139,124,255,.07);border:1px solid rgba(139,124,255,.22);color:#b9b1ff;margin-bottom:22px}
+.hero-eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc);animation:blink 2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.3}}
+h1.hero-title{font-size:clamp(38px,7vw,72px);line-height:1.02;margin:0 0 18px;font-weight:800;letter-spacing:-.035em;max-width:14ch}
+h1.hero-title .grad{background:linear-gradient(100deg,#a89cff 0%,#4fd1ff 50%,#ff7ab8 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:28px}
+.action-btn{position:relative;display:inline-flex;align-items:center;gap:10px;padding:15px 28px;border-radius:999px;cursor:pointer;border:1px solid var(--line-2);background:rgba(255,255,255,.035);color:var(--txt);font:inherit;font-weight:700;font-size:15px;overflow:hidden;transition:transform .28s cubic-bezier(.2,.9,.3,1.2),border-color .3s,background .3s,box-shadow .3s,color .3s;isolation:isolate;letter-spacing:-.01em}
+.action-btn svg.ico{width:18px;height:18px;fill:currentColor;flex-shrink:0;transition:transform .35s cubic-bezier(.2,.9,.3,1.4)}
+.action-btn .arrow{width:15px;height:15px;fill:currentColor;opacity:.65;transition:transform .3s cubic-bezier(.2,.9,.3,1.4),opacity .3s}
+.action-btn::before{content:"";position:absolute;top:0;left:-100%;width:55%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-20deg);transition:left .65s cubic-bezier(.2,.9,.3,1);pointer-events:none;z-index:1}
+.action-btn:hover::before{left:150%}
+.action-btn::after{content:"";position:absolute;inset:-1px;border-radius:inherit;z-index:-1;background:radial-gradient(ellipse 70% 80% at 50% 50%,var(--glow,rgba(139,124,255,.5)),transparent 70%);opacity:0;transition:opacity .4s}
+.action-btn:hover::after{opacity:1}
+.action-btn:hover{transform:translateY(-2px)}
+.action-btn:active{transform:translateY(0) scale(.97)}
+.action-btn:hover svg.ico{transform:scale(1.15) rotate(-6deg)}
+.action-btn:hover .arrow{transform:translateX(3px);opacity:1}
+.action-btn.login{--glow:rgba(79,209,255,.55);color:#bfeaff;border-color:rgba(79,209,255,.35);background:rgba(79,209,255,.06)}
+.action-btn.login:hover{color:#fff;border-color:rgba(79,209,255,.7);background:rgba(79,209,255,.12);box-shadow:0 10px 26px -12px rgba(79,209,255,.9)}
+.action-btn.buy{--glow:rgba(255,122,184,.55);color:#ffc7e1;border-color:rgba(255,122,184,.35);background:rgba(255,122,184,.06)}
+.action-btn.buy:hover{color:#fff;border-color:rgba(255,122,184,.7);background:rgba(255,122,184,.12);box-shadow:0 10px 26px -12px rgba(255,122,184,.9)}
+.action-btn.dev{--glow:rgba(32,227,162,.55);color:#b3f5dd;border-color:rgba(32,227,162,.35);background:rgba(32,227,162,.06)}
+.action-btn.dev:hover{color:#fff;border-color:rgba(32,227,162,.7);background:rgba(32,227,162,.12);box-shadow:0 10px 26px -12px rgba(32,227,162,.9)}
+@keyframes floatBtn{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.action-btn.login{animation:floatBtn 4s ease-in-out infinite}
+.action-btn.buy{animation:floatBtn 4s ease-in-out .5s infinite}
+.action-btn.dev{animation:floatBtn 4s ease-in-out 1s infinite}
+.action-btn:hover{animation-play-state:paused}
+@media(max-width:520px){.action-btn{padding:14px 24px;font-size:14.5px}}
+.sec-h{text-align:center;margin-bottom:28px}
+.sec-h .kicker{display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--acc-2);margin-bottom:10px}
+.sec-h .kicker::before,.sec-h .kicker::after{content:"";width:16px;height:1px;background:rgba(79,209,255,.5)}
+.sec-h h2{font-size:clamp(24px,4vw,34px);margin:0 0 8px;font-weight:800;letter-spacing:-.02em}
+.sec-h p{margin:0 auto;color:var(--mut);max-width:460px;font-size:14.5px;line-height:1.6}
+.gt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:24px;position:relative}
+.panel.glow::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(160deg,rgba(139,124,255,.45),transparent 30%,transparent 70%,rgba(79,209,255,.3));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.dash{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+.dash.even{grid-template-columns:1fr 1fr}
+@media(max-width:780px){.dash,.dash.even{grid-template-columns:1fr}}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:8px}
+.panel-head h3{margin:0;font-size:10.5px;letter-spacing:1.6px;color:var(--mut-2);font-weight:700;text-transform:uppercase}
+.vip{font-size:10px;font-weight:700;letter-spacing:1.2px;padding:4px 10px;border-radius:999px;text-transform:uppercase;background:rgba(32,227,162,.1);color:var(--grn);border:1px solid rgba(32,227,162,.28);white-space:nowrap}
+.vip.bad{background:rgba(255,93,114,.1);color:var(--red);border-color:rgba(255,93,114,.28)}
+.field{background:rgba(0,0,0,.32);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:10px}
+.field small{display:block;color:var(--mut-2);font-size:10px;letter-spacing:1.4px;margin-bottom:5px;font-weight:700;text-transform:uppercase}
+.field .val{font-weight:600;font-size:14.5px}
+.keyrow{display:flex;align-items:center;gap:7px}
+.keyrow .mono{flex:1;color:#a89cff;font-size:14px;word-break:break-all;font-weight:500}
+.icon-b{width:32px;height:32px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);color:var(--txt);cursor:pointer;display:grid;place-items:center;transition:.2s;flex-shrink:0}
+.icon-b:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22)}
+.icon-b:active{transform:scale(.94)}
+.icon-b svg{width:14px;height:14px;fill:currentColor}
+.ringwrap{display:grid;place-items:center;position:relative;padding:4px 0}
+.ring{width:186px;height:186px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:10;stroke-linecap:round}
+.ring .bgc{stroke:rgba(255,255,255,.06)}
+.ring .fg{stroke:url(#rg);stroke-dasharray:515;stroke-dashoffset:515;transition:stroke-dashoffset 1.5s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 8px rgba(139,124,255,.65))}
+.ringtxt{position:absolute;text-align:center}
+.ringtxt b{display:block;font-size:36px;font-weight:800;line-height:1;letter-spacing:-.03em}
+.ringtxt span{font-size:9.5px;color:var(--mut-2);letter-spacing:1.7px;font-weight:700;margin-top:5px;display:block}
+.minis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.mini{background:rgba(0,0,0,.32);border:1px solid var(--line);border-radius:11px;padding:11px;text-align:center}
+.mini b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em}
+.mini span{font-size:9.5px;color:var(--mut-2);letter-spacing:1.2px;font-weight:700;margin-top:2px;display:block}
+.stack{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.flash{animation:flash 1s}
+@keyframes flash{30%{box-shadow:0 0 0 3px rgba(32,227,162,.45)}}
+.overlay{position:fixed;inset:0;z-index:60;background:rgba(3,4,10,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .28s}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{width:100%;max-width:430px;max-height:92vh;overflow:auto;background:var(--panel);border:1px solid var(--line-2);border-radius:22px;padding:24px;transform:translateY(22px) scale(.96);transition:transform .38s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 50px 100px -30px rgba(0,0,0,.9)}
+.overlay.open .modal{transform:none}
+.modal h3{margin:0 0 4px;font-size:21px;font-weight:800;letter-spacing:-.02em}
+.modal .hint{color:var(--mut);font-size:13.5px;margin:0 0 14px;line-height:1.5}
+.xbtn{float:right;width:32px;height:32px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);color:var(--mut);cursor:pointer;font-size:14px;transition:.2s}
+.xbtn:hover{background:rgba(255,255,255,.08);color:var(--txt)}
+label{display:block;font-size:10px;font-weight:700;letter-spacing:1.4px;color:var(--mut-2);margin:14px 0 7px;text-transform:uppercase}
+input,select{width:100%;font:inherit;color:var(--txt);background:rgba(0,0,0,.38);border:1px solid var(--line-2);border-radius:11px;padding:13px 14px;outline:none;transition:.2s;font-size:14.5px}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(139,124,255,.15)}
+select option{background:var(--panel)}
+.err{color:var(--red);font-size:12.5px;min-height:18px;margin-top:8px}
+.two{display:flex;gap:9px;margin-top:16px}
+.two .btn{flex:1}
+.result{margin-top:16px;border-radius:14px;padding:16px;border:1px solid var(--line);background:rgba(0,0,0,.32);animation:pop .5s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes pop{from{opacity:0;transform:scale(.93) translateY(10px)}}
+.result.ok{border-color:rgba(32,227,162,.4);background:rgba(32,227,162,.05)}
+.result.warn{border-color:rgba(255,187,51,.4);background:rgba(255,187,51,.05)}
+.result.bad{border-color:rgba(255,93,114,.4);background:rgba(255,93,114,.05)}
+.rh{display:flex;align-items:center;gap:9px;font-weight:700;margin-bottom:12px;font-size:14.5px}
+.rh .tick{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:800}
+.ok .tick{background:rgba(32,227,162,.16);color:var(--grn)}
+.warn .tick{background:rgba(255,187,51,.16);color:var(--amb)}
+.bad .tick{background:rgba(255,93,114,.16);color:var(--red)}
+.rmsg{color:#cfd3e8;font-size:13.5px;word-break:break-word;line-height:1.55}
+.rg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+.rg div{background:rgba(0,0,0,.32);border-radius:10px;padding:10px 6px;text-align:center}
+.rg b{display:block;font-size:17px;font-weight:800;letter-spacing:-.02em}
+.rg span{font-size:9px;color:var(--mut-2);letter-spacing:.9px;font-weight:700;margin-top:2px;display:block}
+.who{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--mut);margin-bottom:10px;word-break:break-word}
+.who b{color:var(--txt)}
+details{margin-top:12px}
+summary{cursor:pointer;color:var(--mut-2);font-size:10.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase}
+pre{margin:9px 0 0;background:#030510;border:1px solid var(--line);border-radius:11px;padding:12px;color:#4fd1ff;font-size:11.5px;max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:"JetBrains Mono",monospace;letter-spacing:0}
+.devline{margin-top:10px;text-align:center;font-size:12.5px;color:var(--mut)}
+.devline b{color:#a89cff;font-weight:700}
+/* admin */
+.two-in{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-sm);background:rgba(0,0,0,.32);margin-bottom:8px}
+.row .k{flex:1;min-width:0;word-break:break-all;color:#a89cff;font-size:13px}
+.row .u{font-size:12px;color:var(--mut);white-space:nowrap}
+.row .dot{width:8px;height:8px;border-radius:50%;background:var(--grn);flex-shrink:0}
+.row .dot.off{background:var(--red)}
+.eg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.hintsm{color:var(--mut-2);font-size:12px;line-height:1.55;margin-top:8px;word-break:break-word}
+.searchrow{display:flex;gap:8px;margin-bottom:12px}
+#toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;width:calc(100% - 32px);pointer-events:none}
+.toast{background:var(--panel);border:1px solid var(--line-2);padding:11px 18px;border-radius:11px;font-size:13.5px;font-weight:600;box-shadow:0 20px 50px -12px #000;animation:tin .35s ease,tout .35s ease 2.4s forwards}
+@keyframes tin{from{opacity:0;transform:translateY(14px) scale(.95)}}
+@keyframes tout{to{opacity:0;transform:translateY(8px)}}
+footer{text-align:center;color:var(--mut-2);font-size:12.5px;padding:30px 20px calc(30px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+footer b{color:#a89cff;font-weight:600}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="bg-noise"></div>
+<div class="bg-lines"></div>
+<canvas id="fx"></canvas>
+
+<nav>
+  <a class="brand" href="#top">
+    <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+    <span class="name">Mr Ai <em>Xenon</em></span>
+  </a>
+  <div class="nav-r">
+    <button class="btn sm ghost hide" id="logoutTop">Logout</button>
+  </div>
+</nav>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero" id="heroSec">
+    <div class="hero-eyebrow reveal"><span class="dot"></span> BD Server · Instant Delivery</div>
+    <h1 class="hero-title reveal">Professional <span class="grad">Free Fire Like API</span><br>built for speed.</h1>
+    <div class="hero-actions reveal">
+      <button class="action-btn login" id="btnLogin" type="button">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M12.65 10A5.99 5.99 0 0 0 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6a5.99 5.99 0 0 0 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+        <span>Login</span>
+        <svg class="arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <a class="action-btn buy" id="btnBuy" href="#" target="_blank" rel="noopener">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        <span>Buy Key</span>
+        <svg class="arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </a>
+      <a class="action-btn dev" id="btnDev" href="#" target="_blank" rel="noopener">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M9.4 16.6 4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0 4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+        <span>Developer</span>
+        <svg class="arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- USER DASHBOARD -->
+  <section id="dashSec" class="hide">
+    <div class="sec-h"><span class="kicker">Control Panel</span><h2>Your <span class="gt">Dashboard</span></h2><p>Live data — your limit updates the instant a like is delivered.</p></div>
+    <div class="dash">
+      <div class="panel glow">
+        <div class="panel-head"><h3>Access Info</h3><span class="vip" id="stBadge">VIP Active</span></div>
+        <div class="field"><small>Your Key</small>
+          <div class="keyrow"><span class="mono" id="keyShow">••••</span>
+            <button class="icon-b" id="eyeBtn" title="Show / hide"><svg viewBox="0 0 24 24"><path d="M12 5C7 5 2.7 8.1 1 12.5 2.7 16.9 7 20 12 20s9.3-3.1 11-7.5C21.3 8.1 17 5 12 5zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></button>
+            <button class="icon-b" id="copyKey" title="Copy"><svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg></button>
+          </div></div>
+        <div class="field"><small>Server</small><span class="val">BD · Bangladesh</span></div>
+        <div class="stack">
+          <button class="btn block" id="openLike"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>Send Like</button>
+          <a class="btn ghost block" id="growBtn" href="#" target="_blank" rel="noopener">Contact owner for more limit</a>
+        </div>
+      </div>
+      <div class="panel glow" id="limCard">
+        <div class="panel-head"><h3>Your Limit</h3><span class="mono" style="font-size:10.5px;color:var(--grn);font-weight:700;letter-spacing:1.2px" id="liveTag">● LIVE</span></div>
+        <div class="ringwrap">
+          <svg class="ring" viewBox="0 0 190 190">
+            <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4fd1ff"/><stop offset=".55" stop-color="#8b7cff"/><stop offset="1" stop-color="#ff7ab8"/></linearGradient></defs>
+            <circle class="bgc" cx="95" cy="95" r="82"/><circle class="fg" id="ringFg" cx="95" cy="95" r="82"/>
+          </svg>
+          <div class="ringtxt"><b id="remainNum">0</b><span>REMAINING</span></div>
+        </div>
+        <div class="minis">
+          <div class="mini"><b id="usedNum">0</b><span>USED</span></div>
+          <div class="mini"><b id="totalNum">0</b><span>TOTAL LIMIT</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN PANEL -->
+  <section id="adminSec" class="hide">
+    <div class="sec-h"><span class="kicker">Admin</span><h2>Admin <span class="gt">Panel</span></h2><p>Set main API, generate keys and manage limits.</p></div>
+    <div class="dash even">
+      <div class="panel glow">
+        <div class="panel-head"><h3>Main API URL</h3><span class="vip" id="urlBadge">Not set</span></div>
+        <input id="mainUrl" class="mono" placeholder="https://your-main-api.com/like" autocomplete="off" spellcheck="false">
+        <div class="hintsm">Example: <span class="mono">https://api.com/like?uid={uid}&amp;server_name={server}&amp;key=MAINKEY</span><br>If you don't use <span class="mono">{uid}</span>, the site adds <span class="mono">uid</span> and <span class="mono">server_name</span> automatically.</div>
+        <button class="btn block" id="saveUrl" style="margin-top:14px">Save URL</button>
+      </div>
+      <div class="panel glow">
+        <div class="panel-head"><h3>Generate Key</h3></div>
+        <div class="two-in">
+          <div><label style="margin-top:0">Prefix</label><input id="gPrefix" class="mono" value="XENON" autocapitalize="characters"></div>
+          <div><label style="margin-top:0">Limit</label><input id="gLimit" class="mono" inputmode="numeric" value="10"></div>
+          <div><label>Count</label><input id="gCount" class="mono" inputmode="numeric" value="1"></div>
+          <div><label>Custom key (optional)</label><input id="gCustom" class="mono" autocapitalize="characters" placeholder="MYKEY123"></div>
+        </div>
+        <button class="btn block" id="doGen" style="margin-top:14px">Generate</button>
+        <div id="genOut"></div>
+      </div>
+    </div>
+    <div class="panel glow" style="margin-top:16px">
+      <div class="panel-head"><h3>Key Management · <span id="keyCount">0</span></h3><button class="btn sm ghost" id="refreshKeys">Refresh</button></div>
+      <div class="searchrow"><input id="keySearch" class="mono" placeholder="Search key..." autocomplete="off"></div>
+      <div id="keyList"></div>
+    </div>
+  </section>
+</main>
+
+<footer>Powered by <b>Mr Ai Xenon</b> © <span id="yr"></span> · Dev <a id="ownerLink" href="#" target="_blank" rel="noopener"><b>@Jihad_69xi</b></a></footer>
+
+<!-- LOGIN MODAL -->
+<div class="overlay" id="loginModal">
+  <div class="modal">
+    <button class="xbtn" data-close>✕</button>
+    <h3>Welcome back</h3>
+    <p class="hint">Enter your access key to open the dashboard.</p>
+    <label>Access Key</label>
+    <input id="keyInput" class="mono" placeholder="JIHAD_LIKE_WEB" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <div class="err" id="loginErr"></div>
+    <button class="btn block" id="doLogin" style="margin-top:6px">Log in</button>
+  </div>
+</div>
+
+<!-- LIKE MODAL -->
+<div class="overlay" id="likeModal">
+  <div class="modal">
+    <button class="xbtn" data-close>✕</button>
+    <h3>⚡ Send Like</h3>
+    <p class="hint">Enter the Free Fire UID that should receive likes.</p>
+    <label>Player UID</label>
+    <input id="uid" class="mono" inputmode="numeric" placeholder="Enter user UID..." autocomplete="off">
+    <label>Server</label>
+    <select id="server"><option value="bd">BD (Bangladesh)</option></select>
+    <div class="err" id="likeErr"></div>
+    <div class="two">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="sendLike">Send Like</button>
+    </div>
+    <div id="resBox"></div>
+  </div>
+</div>
+
+<!-- KEY EDIT MODAL (admin) -->
+<div class="overlay" id="editModal">
+  <div class="modal">
+    <button class="xbtn" data-close>✕</button>
+    <h3>Manage Key</h3>
+    <p class="hint mono" id="eKey" style="word-break:break-all;color:#a89cff"></p>
+    <div class="minis" style="margin-top:0">
+      <div class="mini"><b id="eUsed">0</b><span>USED</span></div>
+      <div class="mini"><b id="eLimit">0</b><span>LIMIT</span></div>
+    </div>
+    <label>Amount</label>
+    <input id="eAmt" class="mono" inputmode="numeric" placeholder="e.g. 10">
+    <div class="eg">
+      <button class="btn" data-act="add">＋ Increase</button>
+      <button class="btn ghost" data-act="sub">－ Decrease</button>
+      <button class="btn ghost" data-act="set">Set Limit</button>
+      <button class="btn ghost" data-act="reset">Reset Used</button>
+      <button class="btn ghost" data-act="toggle" id="eToggle">Disable</button>
+      <button class="btn danger" id="eDel">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+/* =====================================================================
+   CONFIG — backend is the same host (Flask). Admin sets Main API in panel.
+   ===================================================================== */
+const OWNER_BOT = "Xenon_All_Bot";   // Buy Key / more limit
+const DEV_USER  = "Jihad_69xi";      // Developer
+/* ===================================================================== */
+
+const $ = s => document.querySelector(s);
+const KEY_RE = /^[A-Za-z0-9_-]{3,64}$/;
+const OWNER_URL = "https://t.me/" + OWNER_BOT;
+const DEV_URL = "https://t.me/" + DEV_USER;
+let KEY = "", SHOW_KEY = false, poll = null, MODE = "hero", ADMIN = "", KEYS = [], EDIT = null, delArm = false;
+let cur = { used: 0, limit: 0, active: true };
+
+try { KEY = (localStorage.getItem("mrai_key") || "").toUpperCase(); } catch (e) {}
+$("#yr").textContent = new Date().getFullYear();
+["#btnBuy", "#growBtn"].forEach(s => { const el = $(s); if (el) el.href = OWNER_URL; });
+["#btnDev", "#ownerLink"].forEach(s => { const el = $(s); if (el) el.href = DEV_URL; });
+$("#ownerLink b").textContent = "@" + DEV_USER;
+
+/* ---------- helpers ---------- */
+function toast(msg) {
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+  $("#toasts").appendChild(t); setTimeout(() => t.remove(), 2900);
+}
+const openM = id => $("#" + id).classList.add("open");
+const closeM = id => $("#" + id).classList.remove("open");
+document.querySelectorAll(".overlay").forEach(o => {
+  o.addEventListener("click", e => { if (e.target === o || e.target.closest("[data-close]")) o.classList.remove("open"); });
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".overlay.open").forEach(o => o.classList.remove("open")); });
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function animateNum(e, to, { dur = 900 } = {}) {
+  const from = parseFloat(e.dataset.v || "0") || 0; e.dataset.v = to;
+  const t0 = performance.now();
+  (function step(t) {
+    const p = Math.min(1, (t - t0) / dur), k = 1 - Math.pow(1 - p, 3);
+    e.textContent = Math.round(from + (to - from) * k);
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+function saveKey(k) { KEY = k; try { k ? localStorage.setItem("mrai_key", k) : localStorage.removeItem("mrai_key"); } catch (e) {} }
+async function copyText(t, msg) { try { await navigator.clipboard.writeText(t); toast(msg || "Copied"); } catch (e) { toast("Copy failed"); } }
+
+/* ---------- scroll reveal ---------- */
+const io = new IntersectionObserver(es => es.forEach(x => {
+  if (!x.isIntersecting) return; x.target.classList.add("in"); io.unobserve(x.target);
+}), { threshold: .15 });
+document.querySelectorAll(".reveal").forEach(e => io.observe(e));
+
+/* ---------- views ---------- */
+function view(mode) {
+  MODE = mode;
+  $("#heroSec").classList.toggle("hide", mode !== "hero");
+  $("#dashSec").classList.toggle("hide", mode !== "user");
+  $("#adminSec").classList.toggle("hide", mode !== "admin");
+  $("#logoutTop").classList.toggle("hide", mode === "hero");
+  if (mode !== "hero") window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
+function logout() {
+  saveKey(""); ADMIN = ""; stopPoll();
+  cur = { used: 0, limit: 0, active: true }; KEYS = [];
+  view("hero"); closeM("likeModal"); closeM("editModal");
+}
+
+/* ---------- user: limit ---------- */
+async function fetchLimit(key) {
+  let r;
+  try { r = await fetch("/limit?key=" + encodeURIComponent(key), { cache: "no-store" }); }
+  catch (e) { throw new Error("network"); }
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error("network");
+  return r.json();
+}
+function renderLimit(v, flash) {
+  const used = +v.used || 0, total = +v.limit || 0, left = Math.max(total - used, 0);
+  const changed = used !== cur.used && cur.limit;
+  cur = { used, limit: total, active: v.active !== false };
+  animateNum($("#remainNum"), left); animateNum($("#usedNum"), used); animateNum($("#totalNum"), total);
+  const pct = total ? Math.min(1, left / total) : 0;
+  $("#ringFg").style.strokeDashoffset = 515 * (1 - pct);
+  const b = $("#stBadge");
+  b.textContent = cur.active ? "VIP Active" : "Disabled"; b.classList.toggle("bad", !cur.active);
+  if (flash && changed) { const c = $("#limCard"); c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); }
+}
+function renderKey() { $("#keyShow").textContent = SHOW_KEY ? KEY : KEY.slice(0, 4) + "•".repeat(Math.max(KEY.length - 8, 4)) + KEY.slice(-4); }
+async function refreshLimit() {
+  try {
+    const v = await fetchLimit(KEY);
+    if (!v) { toast("Key removed"); logout(); return; }
+    renderLimit(v, true);
+    const t = $("#liveTag"); t.textContent = "● LIVE"; t.style.color = "var(--grn)";
+  } catch (e) { const t = $("#liveTag"); t.textContent = "● OFFLINE"; t.style.color = "var(--red)"; }
+}
+function startPoll() { stopPoll(); poll = setInterval(() => { if (MODE === "user") refreshLimit(); }, 5000); }
+
+/* ---------- login (admin key or user key) ---------- */
+async function tryAdmin(key) {
+  const r = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
+  return r.ok;
+}
+async function enter(key, silent) {
+  key = (key || "").trim().toUpperCase();
+  if (!KEY_RE.test(key)) { if (!silent) $("#loginErr").textContent = "Invalid key format."; return false; }
+  let isAdm = false, v = null;
+  try {
+    isAdm = await tryAdmin(key);
+    if (!isAdm) v = await fetchLimit(key);
+  } catch (e) { if (!silent) $("#loginErr").textContent = "Network error. Try again."; return false; }
+  if (isAdm) {
+    ADMIN = key; saveKey(key); stopPoll(); view("admin"); loadAdmin(); return true;
+  }
+  if (!v) { if (!silent) $("#loginErr").textContent = "❌ Invalid key."; return false; }
+  saveKey(key); SHOW_KEY = false; cur = { used: 0, limit: 0, active: true };
+  view("user"); renderKey(); renderLimit(v); startPoll(); return true;
+}
+$("#btnLogin").onclick = () => { $("#loginErr").textContent = ""; openM("loginModal"); setTimeout(() => $("#keyInput").focus(), 250); };
+$("#logoutTop").onclick = () => { logout(); toast("Logged out"); };
+$("#keyInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#doLogin").click(); });
+$("#doLogin").onclick = async () => {
+  const btn = $("#doLogin"), k = $("#keyInput").value.trim().toUpperCase();
+  $("#loginErr").textContent = ""; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Checking...';
+  const ok = await enter(k);
+  btn.disabled = false; btn.textContent = "Log in";
+  if (ok) { $("#keyInput").value = ""; closeM("loginModal"); toast(MODE === "admin" ? "Admin mode ✅" : "Welcome! 🎉"); }
+};
+$("#eyeBtn").onclick = () => { SHOW_KEY = !SHOW_KEY; renderKey(); };
+$("#copyKey").onclick = () => copyText(KEY, "Key copied");
+
+/* ---------- send like ---------- */
+$("#openLike").onclick = () => { $("#likeErr").textContent = ""; $("#resBox").innerHTML = ""; openM("likeModal"); };
+$("#uid").addEventListener("keydown", e => { if (e.key === "Enter") $("#sendLike").click(); });
+
+function renderResult(out) {
+  const box = $("#resBox"); box.innerHTML = "";
+  const d = Array.isArray(out) ? out[0] : out;
+  const given = d && d.LikesGivenByAPI !== undefined ? Number(d.LikesGivenByAPI) : null;
+  let cls, icon, title, msg = "";
+  if (given !== null && given > 0) { cls = "ok"; icon = "✓"; title = "Likes delivered"; }
+  else if (given === 0) { cls = "warn"; icon = "!"; title = "No likes added"; msg = "No likes were added. Your limit was not deducted."; }
+  else { cls = "bad"; icon = "✕"; title = "Request failed"; msg = (d && (d.error || d.message)) || "Something went wrong. Please try again."; }
+  const r = el("div", "result " + cls);
+  const h = el("div", "rh"); h.append(el("span", "tick", icon), el("span", "", title)); r.append(h);
+  if (d && d.PlayerNickname) { const w = el("div", "who"); w.append(el("span", "", "Player"), el("b", "", d.PlayerNickname)); r.append(w); }
+  if (msg) r.append(el("div", "rmsg", msg));
+  if (given !== null) {
+    const g = el("div", "rg");
+    [["BEFORE", d.LikesbeforeCommand], ["ADDED", given], ["AFTER", d.LikesafterCommand]].forEach(([l, v]) => {
+      const c = el("div"); const n = el("b", "mono", "0"); c.append(n, el("span", "", l)); g.append(c);
+      animateNum(n, Number(v) || 0, { dur: 1100 });
+    });
+    r.append(g);
+  }
+  const det = el("details"); det.open = true;
+  det.append(el("summary", "", "Response"), el("pre", "mono", JSON.stringify(out, null, 2))); r.append(det);
+  const dl = el("div", "devline"); dl.append("Dev: ", el("b", "", "@" + DEV_USER)); r.append(dl);
+  const cp = el("button", "btn ghost sm", "Copy response"); cp.style.marginTop = "12px";
+  cp.onclick = () => copyText(JSON.stringify(out, null, 2));
+  r.append(cp); box.append(r);
+  if (cls === "ok") toast("+" + given + " likes sent ❤️");
+}
+$("#sendLike").onclick = async () => {
+  const uid = $("#uid").value.trim(), btn = $("#sendLike");
+  $("#likeErr").textContent = "";
+  if (!/^\d{5,15}$/.test(uid)) { $("#likeErr").textContent = "Enter a valid UID (numbers only)."; return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Processing...'; $("#resBox").innerHTML = "";
+  let out;
+  try {
+    const r = await fetch(`/like?uid=${encodeURIComponent(uid)}&server_name=bd&key=${encodeURIComponent(KEY)}`);
+    out = await r.json();
+  } catch (e) { out = { status: 0, error: "NETWORK ERROR — API server not reachable.", Dev: "@" + DEV_USER }; }
+  renderResult(out);
+  btn.disabled = false; btn.textContent = "Send Like";
+  refreshLimit();
+};
+
+/* ---------- admin ---------- */
+async function adm(path, body) {
+  let r;
+  try {
+    r = await fetch("/api/admin/" + path, {
+      method: body ? "POST" : "GET",
+      headers: { "Content-Type": "application/json", "X-Admin-Key": ADMIN },
+      body: body ? JSON.stringify(body) : undefined, cache: "no-store"
+    });
+  } catch (e) { return { ok: false, error: "Network error" }; }
+  const j = await r.json().catch(() => ({ ok: false, error: "Bad response" }));
+  if (r.status === 401) { toast("Session expired"); logout(); }
+  return j;
+}
+async function loadAdmin() {
+  const j = await adm("state");
+  if (!j.ok) { if (j.error) toast(j.error); return; }
+  $("#mainUrl").value = j.main_url || "";
+  const b = $("#urlBadge"); b.textContent = j.main_url ? "Set" : "Not set"; b.classList.toggle("bad", !j.main_url);
+  KEYS = j.keys || []; renderKeys();
+}
+function renderKeys() {
+  const q = $("#keySearch").value.trim().toUpperCase();
+  const list = KEYS.filter(k => !q || k.key.includes(q));
+  $("#keyCount").textContent = KEYS.length;
+  const box = $("#keyList"); box.innerHTML = "";
+  if (!list.length) { box.append(el("div", "hintsm", KEYS.length ? "No match." : "No keys yet. Generate one above.")); return; }
+  list.forEach(k => {
+    const r = el("div", "row"); r.append(el("span", "dot" + (k.active ? "" : " off")), el("span", "k mono", k.key), el("span", "u mono", k.used + "/" + k.limit));
+    const m = el("button", "btn sm ghost", "Manage"); m.onclick = () => openEdit(k.key); r.append(m);
+    box.append(r);
+  });
+}
+$("#keySearch").oninput = renderKeys;
+$("#refreshKeys").onclick = async () => { await loadAdmin(); toast("Refreshed"); };
+$("#saveUrl").onclick = async () => {
+  const btn = $("#saveUrl"); btn.disabled = true;
+  const j = await adm("url", { url: $("#mainUrl").value.trim() });
+  btn.disabled = false;
+  if (j.ok) { toast("Main API saved ✅"); loadAdmin(); } else toast(j.error || "Failed");
+};
+$("#doGen").onclick = async () => {
+  const btn = $("#doGen"); btn.disabled = true;
+  const j = await adm("gen", { prefix: $("#gPrefix").value, limit: $("#gLimit").value, count: $("#gCount").value, key: $("#gCustom").value });
+  btn.disabled = false;
+  const out = $("#genOut"); out.innerHTML = "";
+  if (!j.ok) { toast(j.error || "Failed"); return; }
+  const txt = j.keys.join("\n");
+  out.append(el("pre", "mono", txt));
+  const c = el("button", "btn ghost sm block", "Copy all keys"); c.style.marginTop = "10px"; c.onclick = () => copyText(txt, "Keys copied"); out.append(c);
+  $("#gCustom").value = ""; toast(j.keys.length + " key(s) created"); loadAdmin();
+};
+function openEdit(key) {
+  const k = KEYS.find(x => x.key === key); if (!k) return;
+  EDIT = key; delArm = false; $("#eDel").textContent = "Delete"; $("#eAmt").value = "";
+  $("#eKey").textContent = k.key; $("#eUsed").textContent = k.used; $("#eLimit").textContent = k.limit;
+  $("#eToggle").textContent = k.active ? "Disable" : "Enable";
+  openM("editModal");
+}
+document.querySelectorAll("#editModal [data-act]").forEach(b => b.onclick = async () => {
+  const act = b.dataset.act, amt = parseInt($("#eAmt").value, 10);
+  if (["add", "sub", "set"].includes(act) && !(amt >= 0)) { toast("Enter an amount"); return; }
+  const j = await adm("limit", { key: EDIT, action: act, amount: amt || 0 });
+  if (!j.ok) { toast(j.error || "Failed"); return; }
+  toast("Updated ✅"); await loadAdmin(); openEdit(EDIT);
+});
+$("#eDel").onclick = async () => {
+  if (!delArm) { delArm = true; $("#eDel").textContent = "Tap again to confirm"; return; }
+  const j = await adm("delete", { key: EDIT });
+  if (j.ok) { closeM("editModal"); toast("Key deleted"); loadAdmin(); } else toast(j.error || "Failed");
+};
+
+/* ---------- particles ---------- */
+(function () {
+  const c = $("#fx"), x = c.getContext("2d"); let W, H, P = [];
+  function size() {
+    W = c.width = innerWidth; H = c.height = innerHeight;
+    P = Array.from({ length: Math.min(46, Math.floor(W / 30)) }, () => ({
+      x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.3 + .3,
+      vx: (Math.random() - .5) * .15, vy: -Math.random() * .28 - .04, a: Math.random() * .35 + .1
+    }));
+  }
+  addEventListener("resize", size); size();
+  (function loop() {
+    x.clearRect(0, 0, W, H);
+    for (const p of P) {
+      p.x += p.vx; p.y += p.vy; if (p.y < -5) { p.y = H + 5; p.x = Math.random() * W; }
+      x.beginPath(); x.arc(p.x, p.y, p.r, 0, 6.283); x.fillStyle = `rgba(170,160,255,${p.a})`; x.fill();
+    }
+    requestAnimationFrame(loop);
+  })();
+})();
+
+/* ---------- auto login ---------- */
+if (KEY) enter(KEY, true).then(ok => { if (!ok) saveKey(""); });
+</script>
+</body>
+</html>
