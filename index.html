@@ -402,7 +402,7 @@ function logout() {
 /* ---------- user: limit ---------- */
 async function fetchLimit(key) {
   let r;
-  try { r = await fetch("/limit?key=" + encodeURIComponent(key), { cache: "no-store" }); }
+  try { r = await fetch("/limit?_p=/limit&key=" + encodeURIComponent(key), { cache: "no-store" }); }
   catch (e) { throw new Error("network"); }
   if (r.status === 404) return null;
   if (!r.ok) throw new Error("network");
@@ -432,7 +432,7 @@ function startPoll() { stopPoll(); poll = setInterval(() => { if (MODE === "user
 
 /* ---------- login (admin key or user key) ---------- */
 async function tryAdmin(key) {
-  const r = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
+  const r = await fetch("/api/admin/login?_p=/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
   return r.ok;
 }
 async function enter(key, silent) {
@@ -502,7 +502,7 @@ $("#sendLike").onclick = async () => {
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Processing...'; $("#resBox").innerHTML = "";
   let out;
   try {
-    const r = await fetch(`/like?uid=${encodeURIComponent(uid)}&server_name=bd&key=${encodeURIComponent(KEY)}`);
+    const r = await fetch(`/like?_p=/like&uid=${encodeURIComponent(uid)}&server_name=bd&key=${encodeURIComponent(KEY)}`);
     out = await r.json();
   } catch (e) { out = { status: 0, error: "NETWORK ERROR — API server not reachable.", Dev: "@" + DEV_USER }; }
   renderResult(out);
@@ -514,7 +514,7 @@ $("#sendLike").onclick = async () => {
 async function adm(path, body) {
   let r;
   try {
-    r = await fetch("/api/admin/" + path, {
+    r = await fetch("/api/admin/" + path + "?_p=/api/admin/" + path, {
       method: body ? "POST" : "GET",
       headers: { "Content-Type": "application/json", "X-Admin-Key": ADMIN },
       body: body ? JSON.stringify(body) : undefined, cache: "no-store"
