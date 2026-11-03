@@ -21,6 +21,32 @@ ROOT = "xenon_web"
 KEY_RE = re.compile(r"^[A-Z0-9_-]{3,64}$")
 
 
+# ------------------------------------------------------------------ vercel path fix
+class FixVercelPath:
+    """Vercel rewrites every URL to /api/index -> restore the real path (/, /like, /limit, /api/admin/..)."""
+    def __init__(self, wsgi):
+        self.wsgi = wsgi
+
+    def __call__(self, environ, start_response):
+        p = environ.get("PATH_INFO", "")
+        if p in ("/api/index", "/api/index.py"):
+            from urllib.parse import parse_qs, unquote
+            orig = None
+            m = environ.get("HTTP_X_NOW_ROUTE_MATCHES", "")
+            if m:
+                g = parse_qs(m, keep_blank_values=True).get("1")
+                if g is not None:
+                    orig = "/" + unquote(g[0]).lstrip("/")
+            if orig is None:  # header missing -> guess from query string
+                q = parse_qs(environ.get("QUERY_STRING", ""))
+                orig = "/like" if "uid" in q else ("/limit" if "key" in q else "/")
+            environ["PATH_INFO"] = orig
+        return self.wsgi(environ, start_response)
+
+
+app.wsgi_app = FixVercelPath(app.wsgi_app)
+
+
 # ------------------------------------------------------------------ storage
 class FirebaseStore:
     def _u(self, path):
@@ -315,7 +341,7 @@ def home():
 def not_found(e):
     p = request.path
     if p.startswith(("/api", "/like", "/limit")):
-        return jsonify({"status": 0, "error": "NOT FOUND", "Dev": DEV}), 404
+        return jsonify({"status": 0, "error": "NOT FOUND", "path": p, "Dev": DEV}), 404
     return home()  # any other page -> website
 
 
