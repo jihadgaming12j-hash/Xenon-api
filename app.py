@@ -188,7 +188,14 @@ def build_upstream(url, uid, server):
         u = re.sub(r"\{(server_name|server|region)\}", server, u, flags=re.I)
         params = None
     else:
-        u, params = url, {"uid": uid, "server_name": server}
+        # drop any uid / server_name already saved inside the main URL (that was the "same name again" bug:
+        # the old uid stayed first in the query and the main API read it instead of the new one)
+        from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+        sp = urlsplit(url)
+        keep = [(k, v) for k, v in parse_qsl(sp.query, keep_blank_values=True)
+                if k.lower() not in ("uid", "server_name")]
+        u = urlunsplit((sp.scheme, sp.netloc, sp.path, urlencode(keep), ""))
+        params = {"uid": uid, "server_name": server}
     # Termux/VPS often has SSL, proxy or DNS problems -> try safe variants one by one
     variants = [dict(), dict(verify=False), dict(verify=False, noproxy=True)]
     last = None
@@ -229,6 +236,8 @@ def _nk(k):
 def _kind(k):
     """Which limit-field is this key? remaining / used / limit / None"""
     n = _nk(k)
+    if "token" in n:
+        return None
     if "remain" in n or n in ("left", "keyleft", "requestsleft"):
         return "remaining"
     if "used" in n or n in ("usage", "keyusage"):
@@ -338,6 +347,13 @@ def home():
     r.headers["Content-Type"] = "text/html; charset=utf-8"
     r.headers["Cache-Control"] = "no-store"
     return r
+
+
+@app.after_request
+def _nocache(resp):
+    if request.path != "/" and "Cache-Control" not in resp.headers:
+        resp.headers["Cache-Control"] = "no-store, max-age=0"
+    return resp
 
 
 @app.errorhandler(404)
