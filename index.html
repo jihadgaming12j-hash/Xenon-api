@@ -196,12 +196,12 @@ footer b{color:#a89cff;font-weight:600}
         <span>Login</span>
         <svg class="arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </button>
-      <a class="action-btn buy" id="btnBuy" href="#" target="_blank" rel="noopener">
+      <a class="action-btn buy" id="btnBuy" href="#" target="_blank" rel="noopener noreferrer">
         <svg class="ico" viewBox="0 0 24 24"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0 0 20 4H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
         <span>Buy Key</span>
         <svg class="arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </a>
-      <a class="action-btn dev" id="btnDev" href="#" target="_blank" rel="noopener">
+      <a class="action-btn dev" id="btnDev" href="#" target="_blank" rel="noopener noreferrer">
         <svg class="ico" viewBox="0 0 24 24"><path d="M9.4 16.6 4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0 4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
         <span>Developer</span>
         <svg class="arrow" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -223,7 +223,7 @@ footer b{color:#a89cff;font-weight:600}
         <div class="field"><small>Server</small><span class="val">BD · Bangladesh</span></div>
         <div class="stack">
           <button class="btn block" id="openLike"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>Send Like</button>
-          <a class="btn ghost block" id="growBtn" href="#" target="_blank" rel="noopener">Contact owner for more limit</a>
+          <a class="btn ghost block" id="growBtn" href="#" target="_blank" rel="noopener noreferrer">Contact owner for more limit</a>
         </div>
       </div>
       <div class="panel glow" id="limCard">
@@ -273,7 +273,7 @@ footer b{color:#a89cff;font-weight:600}
   </section>
 </main>
 
-<footer>Powered by <b>Mr Ai Xenon</b> © <span id="yr"></span> · Dev <a id="ownerLink" href="#" target="_blank" rel="noopener"><b>@Jihad_69xi</b></a></footer>
+<footer>Powered by <b>Mr Ai Xenon</b> © <span id="yr"></span> · Dev <a id="ownerLink" href="#" target="_blank" rel="noopener noreferrer"><b>@Jihad_69xi</b></a></footer>
 
 <!-- LOGIN MODAL -->
 <div class="overlay" id="loginModal">
@@ -395,6 +395,7 @@ function view(mode) {
 function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
 function logout() {
   saveKey(""); ADMIN = ""; stopPoll();
+  try { sessionStorage.removeItem("mrai_adm"); } catch (e) {}
   cur = { used: 0, limit: 0, active: true }; KEYS = [];
   view("hero"); closeM("likeModal"); closeM("editModal");
 }
@@ -430,25 +431,26 @@ async function refreshLimit() {
 }
 function startPoll() { stopPoll(); poll = setInterval(() => { if (MODE === "user") refreshLimit(); }, 5000); }
 
-/* ---------- login (admin key or user key) ---------- */
-async function tryAdmin(key) {
-  const r = await fetch("/api/admin/login?_p=/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
-  return r.ok;
+/* ---------- login (single secure endpoint: admin key -> token, user key -> limit) ---------- */
+async function login(key) {
+  const r = await fetch("/api/login?_p=/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
+  if (r.status === 429) throw new Error("rate");
+  return r.ok ? r.json() : null;
 }
 async function enter(key, silent) {
   key = (key || "").trim().toUpperCase();
   if (!KEY_RE.test(key)) { if (!silent) $("#loginErr").textContent = "Invalid key format."; return false; }
-  let isAdm = false, v = null;
-  try {
-    isAdm = await tryAdmin(key);
-    if (!isAdm) v = await fetchLimit(key);
-  } catch (e) { if (!silent) $("#loginErr").textContent = "Network error. Try again."; return false; }
-  if (isAdm) {
-    ADMIN = key; saveKey(key); stopPoll(); view("admin"); loadAdmin(); return true;
+  let j;
+  try { j = await login(key); }
+  catch (e) { if (!silent) $("#loginErr").textContent = e.message === "rate" ? "Too many attempts. Try later." : "Network error. Try again."; return false; }
+  if (!j) { if (!silent) $("#loginErr").textContent = "❌ Invalid key."; return false; }
+  if (j.role === "admin") {
+    ADMIN = j.token; saveKey("");                       // admin key is never stored
+    try { sessionStorage.setItem("mrai_adm", ADMIN); } catch (e) {}
+    stopPoll(); view("admin"); loadAdmin(); return true;
   }
-  if (!v) { if (!silent) $("#loginErr").textContent = "❌ Invalid key."; return false; }
   saveKey(key); SHOW_KEY = false; cur = { used: 0, limit: 0, active: true };
-  view("user"); renderKey(); renderLimit(v); startPoll(); return true;
+  view("user"); renderKey(); renderLimit(j); startPoll(); return true;
 }
 $("#btnLogin").onclick = () => { $("#loginErr").textContent = ""; openM("loginModal"); setTimeout(() => $("#keyInput").focus(), 250); };
 $("#logoutTop").onclick = () => { logout(); toast("Logged out"); };
@@ -510,13 +512,13 @@ $("#sendLike").onclick = async () => {
   refreshLimit();
 };
 
-/* ---------- admin ---------- */
+/* ---------- admin (signed session token, not the raw admin key) ---------- */
 async function adm(path, body) {
   let r;
   try {
     r = await fetch("/api/admin/" + path + "?_p=/api/admin/" + path, {
       method: body ? "POST" : "GET",
-      headers: { "Content-Type": "application/json", "X-Admin-Key": ADMIN },
+      headers: { "Content-Type": "application/json", "X-Admin-Token": ADMIN },
       body: body ? JSON.stringify(body) : undefined, cache: "no-store"
     });
   } catch (e) { return { ok: false, error: "Network error" }; }
@@ -604,7 +606,9 @@ $("#eDel").onclick = async () => {
 })();
 
 /* ---------- auto login ---------- */
-if (KEY) enter(KEY, true).then(ok => { if (!ok) saveKey(""); });
+try { ADMIN = sessionStorage.getItem("mrai_adm") || ""; } catch (e) {}
+if (ADMIN) { view("admin"); loadAdmin(); }
+else if (KEY) enter(KEY, true).then(ok => { if (!ok) saveKey(""); });
 </script>
 </body>
 </html>
