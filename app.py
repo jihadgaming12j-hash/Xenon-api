@@ -20,7 +20,7 @@ SERVERS = {"bd"}  # allowed server_name values (whitelist)
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "").strip().upper()
 if len(ADMIN_KEY) < 12 or not KEY_RE.match(ADMIN_KEY):
     raise RuntimeError("Set env ADMIN_KEY: 12-64 chars, only A-Z 0-9 _ -  (use a long random one)")
-DEV = os.environ.get("DEV_TAG", "@Jihad_69xi")
+DEV = os.environ.get("DEV_TAG", "@XENON_ALL_BOT")
 FB_URL = os.environ.get("FIREBASE_URL", "https://mr-ai-xenon-default-rtdb.firebaseio.com").rstrip("/")
 FB_SECRET = os.environ.get("FIREBASE_SECRET", "")
 USE_LOCAL = os.environ.get("USE_LOCAL", "0") == "1"
