@@ -1,0 +1,7 @@
+.env
+.env.*
+!.env.example
+data.json
+__pycache__/
+*.pyc
+.vercel
