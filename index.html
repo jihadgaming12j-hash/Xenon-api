@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#04050a">
-<title>XENON — Free Fire Like API</title>
-<meta name="description" content="XENON — premium Free Fire like API for the BD server. Instant delivery, live limit tracking, fair billing.">
+<title>Xenon Official — Free Fire Like API</title>
+<meta name="description" content="Xenon Official — premium Free Fire like API for the BD server. Instant delivery, live limit tracking, fair billing.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -167,6 +167,9 @@ pre{margin:9px 0 0;background:#030510;border:1px solid var(--line);border-radius
 footer{text-align:center;color:var(--mut-2);font-size:12.5px;padding:30px 20px calc(30px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 footer b{color:#a89cff;font-weight:600}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+.chk{display:flex;align-items:center;gap:9px;margin:14px 0 0;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mut);cursor:pointer}
+.chk input{width:18px;height:18px;padding:0;margin:0;accent-color:#8b7cff;flex-shrink:0}
+.pwrow{display:flex;gap:8px}.pwrow input{flex:1;min-width:0}.pwrow .btn{padding:0 14px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -178,7 +181,7 @@ footer b{color:#a89cff;font-weight:600}
 <nav>
   <a class="brand" href="#top">
     <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
-    <span class="name">XENON <em>OFFICIAL</em></span>
+    <span class="name">Xenon<em>Official</em></span>
   </a>
   <div class="nav-r">
     <button class="btn sm ghost hide" id="logoutTop">Logout</button>
@@ -223,7 +226,7 @@ footer b{color:#a89cff;font-weight:600}
         <div class="field"><small>Server</small><span class="val">BD · Bangladesh</span></div>
         <div class="stack">
           <button class="btn block" id="openLike"><svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>Send Like</button>
-          <a class="btn ghost block" id="growBtn" href="#" target="_blank" rel="noopener noreferrer">Contact ANISUR RAHAMAN for more limit</a>
+          <a class="btn ghost block" id="growBtn" href="#" target="_blank" rel="noopener noreferrer">Contact owner for more limit</a>
         </div>
       </div>
       <div class="panel glow" id="limCard">
@@ -251,6 +254,7 @@ footer b{color:#a89cff;font-weight:600}
         <div class="panel-head"><h3>Main API URL</h3><span class="vip" id="urlBadge">Not set</span></div>
         <input id="mainUrl" class="mono" placeholder="https://your-main-api.com/like" autocomplete="off" spellcheck="false">
         <div class="hintsm">Example: <span class="mono">https://api.com/like?uid={uid}&amp;server_name={server}&amp;key=MAINKEY</span><br>If you don't use <span class="mono">{uid}</span>, the site adds <span class="mono">uid</span> and <span class="mono">server_name</span> automatically.</div>
+        <div class="hintsm" id="urlNote"></div>
         <button class="btn block" id="saveUrl" style="margin-top:14px">Save URL</button>
       </div>
       <div class="panel glow">
@@ -273,7 +277,7 @@ footer b{color:#a89cff;font-weight:600}
   </section>
 </main>
 
-<footer>Powered by <b>Mr Ai Xenon</b> © <span id="yr"></span> · Dev <a id="ownerLink" href="#" target="_blank" rel="noopener noreferrer"><b>@Jihad_69xi</b></a></footer>
+<footer>Powered by <b>Jihad Hasan </b> © <span id="yr"></span> · Dev <a id="ownerLink" href="#" target="_blank" rel="noopener noreferrer"><b>@Jihad_69xi</b></a> · <a id="admLink" href="#" style="opacity:.5">Admin</a></footer>
 
 <!-- LOGIN MODAL -->
 <div class="overlay" id="loginModal">
@@ -282,9 +286,33 @@ footer b{color:#a89cff;font-weight:600}
     <h3>Welcome back</h3>
     <p class="hint">Enter your access key to open the dashboard.</p>
     <label>Access Key</label>
-    <input id="keyInput" class="mono" placeholder="XENON_LIKE_API" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <input id="keyInput" class="mono" placeholder="JIHAD_LIKE_WEB" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <label class="chk"><input type="checkbox" id="remUser" checked> Remember me on this device</label>
     <div class="err" id="loginErr"></div>
     <button class="btn block" id="doLogin" style="margin-top:6px">Log in</button>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN MODAL -->
+<div class="overlay" id="adminModal">
+  <div class="modal">
+    <button class="xbtn" data-close>✕</button>
+    <h3>🔐 Admin login</h3>
+    <p class="hint">Authorized admin only. Every failed attempt is rate-limited and locked.</p>
+    <form id="admForm" method="post" action="#" autocomplete="on">
+      <label for="admUser">Username</label>
+      <input id="admUser" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      <label for="admPass">Password</label>
+      <div class="pwrow">
+        <input id="admPass" name="password" type="password" autocomplete="current-password" required>
+        <button type="button" class="btn ghost sm" id="admEye">Show</button>
+      </div>
+      <label for="admCode">2FA code <span style="text-transform:none;letter-spacing:0">(if enabled)</span></label>
+      <input id="admCode" name="otp" class="mono" inputmode="numeric" autocomplete="one-time-code" maxlength="8" spellcheck="false">
+      <label class="chk"><input type="checkbox" id="admRem" checked> Remember me (30 days)</label>
+      <div class="err" id="admErr"></div>
+      <button class="btn block" id="admGo" type="submit" style="margin-top:6px">Log in</button>
+    </form>
   </div>
 </div>
 
@@ -347,7 +375,8 @@ const DEV_URL = "https://t.me/" + DEV_USER;
 let KEY = "", SHOW_KEY = false, poll = null, MODE = "hero", ADMIN = "", KEYS = [], EDIT = null, delArm = false;
 let cur = { used: 0, limit: 0, active: true };
 
-try { KEY = (localStorage.getItem("mrai_key") || "").toUpperCase(); } catch (e) {}
+let REM_AT_LOAD = true;
+try { REM_AT_LOAD = !!localStorage.getItem("mrai_key"); KEY = (localStorage.getItem("mrai_key") || sessionStorage.getItem("mrai_key") || "").toUpperCase(); } catch (e) {}
 $("#yr").textContent = new Date().getFullYear();
 ["#btnBuy", "#growBtn"].forEach(s => { const el = $(s); if (el) el.href = OWNER_URL; });
 ["#btnDev", "#ownerLink"].forEach(s => { const el = $(s); if (el) el.href = DEV_URL; });
@@ -374,7 +403,13 @@ function animateNum(e, to, { dur = 900 } = {}) {
     if (p < 1) requestAnimationFrame(step);
   })(t0);
 }
-function saveKey(k) { KEY = k; try { k ? localStorage.setItem("mrai_key", k) : localStorage.removeItem("mrai_key"); } catch (e) {} }
+function saveKey(k, remember) {
+  KEY = k;
+  try {
+    localStorage.removeItem("mrai_key"); sessionStorage.removeItem("mrai_key");
+    if (k) (remember === false ? sessionStorage : localStorage).setItem("mrai_key", k);
+  } catch (e) {}
+}
 async function copyText(t, msg) { try { await navigator.clipboard.writeText(t); toast(msg || "Copied"); } catch (e) { toast("Copy failed"); } }
 
 /* ---------- scroll reveal ---------- */
@@ -394,8 +429,9 @@ function view(mode) {
 }
 function stopPoll() { if (poll) { clearInterval(poll); poll = null; } }
 function logout() {
+  if (MODE === "admin") fetch("/api/admin/logout?_p=/api/admin/logout", { method: "POST", headers: { "X-Requested-With": "xenon-admin" } }).catch(() => {});
   saveKey(""); ADMIN = ""; stopPoll();
-  try { sessionStorage.removeItem("mrai_adm"); } catch (e) {}
+  try { localStorage.removeItem("mrai_adm"); } catch (e) {}
   cur = { used: 0, limit: 0, active: true }; KEYS = [];
   view("hero"); closeM("likeModal"); closeM("editModal");
 }
@@ -431,25 +467,20 @@ async function refreshLimit() {
 }
 function startPoll() { stopPoll(); poll = setInterval(() => { if (MODE === "user") refreshLimit(); }, 5000); }
 
-/* ---------- login (single secure endpoint: admin key -> token, user key -> limit) ---------- */
+/* ---------- user login (access key only; admin has its own secure login below) ---------- */
 async function login(key) {
   const r = await fetch("/api/login?_p=/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
   if (r.status === 429) throw new Error("rate");
   return r.ok ? r.json() : null;
 }
-async function enter(key, silent) {
+async function enter(key, silent, remember) {
   key = (key || "").trim().toUpperCase();
   if (!KEY_RE.test(key)) { if (!silent) $("#loginErr").textContent = "Invalid key format."; return false; }
   let j;
   try { j = await login(key); }
   catch (e) { if (!silent) $("#loginErr").textContent = e.message === "rate" ? "Too many attempts. Try later." : "Network error. Try again."; return false; }
   if (!j) { if (!silent) $("#loginErr").textContent = "❌ Invalid key."; return false; }
-  if (j.role === "admin") {
-    ADMIN = j.token; saveKey("");                       // admin key is never stored
-    try { sessionStorage.setItem("mrai_adm", ADMIN); } catch (e) {}
-    stopPoll(); view("admin"); loadAdmin(); return true;
-  }
-  saveKey(key); SHOW_KEY = false; cur = { used: 0, limit: 0, active: true };
+  saveKey(key, remember); SHOW_KEY = false; cur = { used: 0, limit: 0, active: true };
   view("user"); renderKey(); renderLimit(j); startPoll(); return true;
 }
 $("#btnLogin").onclick = () => { $("#loginErr").textContent = ""; openM("loginModal"); setTimeout(() => $("#keyInput").focus(), 250); };
@@ -458,12 +489,39 @@ $("#keyInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#doL
 $("#doLogin").onclick = async () => {
   const btn = $("#doLogin"), k = $("#keyInput").value.trim().toUpperCase();
   $("#loginErr").textContent = ""; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Checking...';
-  const ok = await enter(k);
+  const ok = await enter(k, false, $("#remUser").checked);
   btn.disabled = false; btn.textContent = "Log in";
   if (ok) { $("#keyInput").value = ""; closeM("loginModal"); toast(MODE === "admin" ? "Admin mode ✅" : "Welcome! 🎉"); }
 };
 $("#eyeBtn").onclick = () => { SHOW_KEY = !SHOW_KEY; renderKey(); };
 $("#copyKey").onclick = () => copyText(KEY, "Key copied");
+
+/* ---------- admin login (HttpOnly session cookie; password never stored by this page) ---------- */
+$("#admLink").onclick = e => { e.preventDefault(); $("#admErr").textContent = ""; openM("adminModal"); setTimeout(() => $("#admUser").focus(), 250); };
+$("#admEye").onclick = () => { const p = $("#admPass"), show = p.type === "password"; p.type = show ? "text" : "password"; $("#admEye").textContent = show ? "Hide" : "Show"; };
+$("#admForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const btn = $("#admGo"), user = $("#admUser").value.trim(), pass = $("#admPass").value, code = $("#admCode").value.trim(), remember = $("#admRem").checked;
+  $("#admErr").textContent = ""; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Checking...';
+  let r = null, j = {};
+  try {
+    r = await fetch("/api/admin/login?_p=/api/admin/login", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-Requested-With": "xenon-admin" },
+      body: JSON.stringify({ user, pass, code, remember })
+    });
+    j = await r.json().catch(() => ({}));
+  } catch (err) { r = null; }
+  btn.disabled = false; btn.textContent = "Log in";
+  if (!r) { $("#admErr").textContent = "Network error. Try again."; return; }
+  if (r.status === 429) { $("#admErr").textContent = "Too many attempts. Try again in " + Math.max(1, Math.ceil((j.retry || 900) / 60)) + " min."; return; }
+  if (!r.ok || !j.ok) { $("#admErr").textContent = "❌ Invalid login."; $("#admPass").value = ""; $("#admCode").value = ""; return; }
+  try { if (remember && window.PasswordCredential) await navigator.credentials.store(new PasswordCredential({ id: user, password: pass, name: "Mr Ai Xenon Admin" })); } catch (err) {}
+  $("#admPass").value = ""; $("#admCode").value = "";
+  saveKey(""); stopPoll(); ADMIN = "1";
+  try { localStorage.setItem("mrai_adm", "1"); } catch (err) {}
+  closeM("adminModal"); view("admin"); loadAdmin(); toast("Admin mode ✅");
+});
 
 /* ---------- send like ---------- */
 $("#openLike").onclick = () => { $("#likeErr").textContent = ""; $("#resBox").innerHTML = ""; openM("likeModal"); };
@@ -512,13 +570,13 @@ $("#sendLike").onclick = async () => {
   refreshLimit();
 };
 
-/* ---------- admin (signed session token, not the raw admin key) ---------- */
+/* ---------- admin (HttpOnly session cookie + CSRF header; no token ever lives in JS) ---------- */
 async function adm(path, body) {
   let r;
   try {
     r = await fetch("/api/admin/" + path + "?_p=/api/admin/" + path, {
-      method: body ? "POST" : "GET",
-      headers: { "Content-Type": "application/json", "X-Admin-Token": ADMIN },
+      method: body ? "POST" : "GET", credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-Requested-With": "xenon-admin" },
       body: body ? JSON.stringify(body) : undefined, cache: "no-store"
     });
   } catch (e) { return { ok: false, error: "Network error" }; }
@@ -529,8 +587,12 @@ async function adm(path, body) {
 async function loadAdmin() {
   const j = await adm("state");
   if (!j.ok) { if (j.error) toast(j.error); return; }
-  $("#mainUrl").value = j.main_url || "";
-  const b = $("#urlBadge"); b.textContent = j.main_url ? "Set" : "Not set"; b.classList.toggle("bad", !j.main_url);
+  const inp = $("#mainUrl"), locked = j.main_url_source === "env", has = !!j.main_url_masked;
+  inp.value = ""; inp.disabled = locked; $("#saveUrl").disabled = locked;
+  inp.placeholder = has ? "Saved: " + j.main_url_masked + " — paste new URL to replace" : "https://your-main-api.com/like";
+  $("#urlNote").textContent = locked ? "🔒 Main API is locked by the server environment (MAIN_API_URL)."
+    : "🔒 The saved URL is encrypted and can never be viewed again — only replaced.";
+  const b = $("#urlBadge"); b.textContent = has ? "Set · hidden" : "Not set"; b.classList.toggle("bad", !has);
   KEYS = j.keys || []; renderKeys();
 }
 function renderKeys() {
@@ -606,9 +668,19 @@ $("#eDel").onclick = async () => {
 })();
 
 /* ---------- auto login ---------- */
-try { ADMIN = sessionStorage.getItem("mrai_adm") || ""; } catch (e) {}
-if (ADMIN) { view("admin"); loadAdmin(); }
-else if (KEY) enter(KEY, true).then(ok => { if (!ok) saveKey(""); });
+(function () {
+  const userAuto = () => { if (KEY) enter(KEY, true, REM_AT_LOAD).then(ok => { if (!ok) saveKey(""); }); };
+  let flag = false;
+  try { flag = localStorage.getItem("mrai_adm") === "1"; } catch (e) {}
+  if (!flag) { userAuto(); return; }
+  fetch("/api/admin/session?_p=/api/admin/session", { credentials: "same-origin", cache: "no-store", headers: { "X-Requested-With": "xenon-admin" } })
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      if (j && j.ok) { ADMIN = "1"; view("admin"); loadAdmin(); }
+      else { try { localStorage.removeItem("mrai_adm"); } catch (e) {} userAuto(); }
+    })
+    .catch(userAuto);
+})();
 </script>
 </body>
 </html>
