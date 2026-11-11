@@ -1,26 +1,45 @@
-# Mr Ai Xenon - Free Fire Like API (Flask) - HARDENED
-# Required env: ADMIN_KEY (12+ chars, A-Z 0-9 _ -), FIREBASE_SECRET (unless USE_LOCAL=1)
+# Mr Ai Xenon - Free Fire Like API (Flask) - HARDENED v2
+# ALL secrets live in environment variables only (never in code, index.html or plaintext DB).
+# First run:  python make_secrets.py   -> prints every env var you need.
 from dotenv import load_dotenv
 load_dotenv()
-import os, re, json, time, hmac, hashlib, secrets, string, threading, socket, ipaddress, random
+import os, re, json, time, hmac, hashlib, secrets, string, threading, socket, ipaddress, random, base64
 from collections import defaultdict, deque
-from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode, parse_qs, unquote
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode, parse_qs, unquote, urljoin
 import requests
-from flask import Flask, request, jsonify, make_response, Response
+from cryptography.fernet import Fernet, InvalidToken
+from flask import Flask, request, jsonify, make_response, Response, g
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=None)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024  # tiny bodies only
 
-KEY_RE = re.compile(r"^[A-Z0-9_-]{3,64}$")
+KEY_RE = re.compile(r"^[A-Z0-9_-]{3,64}$")        # existing user keys keep working
+NEW_KEY_RE = re.compile(r"^[A-Z0-9_-]{8,64}$")    # custom keys created from now on must be 8+ chars
 ROOT = "xenon_web"
 SERVERS = {"bd"}  # allowed server_name values (whitelist)
 
+
 # ------------------------------------------------------------------ config (no weak defaults)
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "").strip().upper()
-if len(ADMIN_KEY) < 12 or not KEY_RE.match(ADMIN_KEY):
-    raise RuntimeError("Set env ADMIN_KEY: 12-64 chars, only A-Z 0-9 _ -  (use a long random one)")
-DEV = os.environ.get("DEV_TAG", "@XENON_ALL_BOT")
+def _env(name, minlen=0):
+    v = os.environ.get(name, "").strip()
+    if len(v) < minlen:
+        raise RuntimeError("Missing/short env %s - run: python make_secrets.py" % name)
+    return v
+
+
+ADMIN_USER = _env("ADMIN_USER", 4)
+ADMIN_PASS_HASH = _env("ADMIN_PASS_HASH", 40)       # scrypt hash, never the password itself
+SESSION_SECRET = _env("SESSION_SECRET", 32)
+DATA_KEY = _env("DATA_KEY", 40)                      # Fernet key: encrypts the Main API URL at rest
+ADMIN_TOTP_SECRET = re.sub(r"\s", "", os.environ.get("ADMIN_TOTP_SECRET", "")).upper()  # optional 2FA
+ENV_MAIN_API = os.environ.get("MAIN_API_URL", "").strip()   # optional: keep Main API out of the DB completely
+try:
+    FERNET = Fernet(DATA_KEY.encode())
+except Exception:
+    raise RuntimeError("DATA_KEY invalid - run: python make_secrets.py")
+
+DEV = os.environ.get("DEV_TAG", "@Jihad_69xi")
 FB_URL = os.environ.get("FIREBASE_URL", "https://mr-ai-xenon-default-rtdb.firebaseio.com").rstrip("/")
 FB_SECRET = os.environ.get("FIREBASE_SECRET", "")
 USE_LOCAL = os.environ.get("USE_LOCAL", "0") == "1"
@@ -28,8 +47,9 @@ if not USE_LOCAL and not FB_SECRET:
     raise RuntimeError("Set env FIREBASE_SECRET and lock Firebase rules (.read/.write = false)")
 UP_TIMEOUT = int(os.environ.get("UPSTREAM_TIMEOUT", "240"))
 ALLOW_PRIVATE_UPSTREAM = os.environ.get("ALLOW_PRIVATE_UPSTREAM", "0") == "1"
-TOKEN_TTL = 2 * 3600
-TOKEN_SECRET = hashlib.sha256(("tok|" + ADMIN_KEY + "|" + FB_SECRET).encode()).digest()
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+COOKIE = "xn_adm"
+SESS_SHORT, SESS_LONG = 2 * 3600, 30 * 86400
 
 
 # ------------------------------------------------------------------ vercel path fix (whitelisted)
@@ -63,7 +83,6 @@ class FixVercelPath:
 
 
 app.wsgi_app = FixVercelPath(app.wsgi_app)
-
 
 # ------------------------------------------------------------------ storage
 class FirebaseStore:
@@ -181,7 +200,9 @@ store = LocalStore() if USE_LOCAL else FirebaseStore()
 
 # ------------------------------------------------------------------ security helpers
 def client_ip():
-    ip = request.headers.get("X-Vercel-Forwarded-For") or ""
+    ip = ""
+    if IS_VERCEL:                                    # only trust this header when Vercel sets it
+        ip = (request.headers.get("X-Vercel-Forwarded-For") or "").split(",")[0].strip()
     if not ip:
         xff = request.headers.get("X-Forwarded-For", "")
         ip = xff.split(",")[-1].strip() if xff else ""   # rightmost = added by our own proxy
@@ -213,28 +234,136 @@ def too_many():
     return jsonify(ok=False, error="Too many requests. Try again later."), 429
 
 
-def make_token():
-    exp = str(int(time.time()) + TOKEN_TTL)
-    return exp + "." + hmac.new(TOKEN_SECRET, exp.encode(), hashlib.sha256).hexdigest()
+
+# ---- persistent (DB-backed) lockouts: survive serverless cold starts, escalate exponentially
+def _ip_hash():
+    return hmac.new(SESSION_SECRET.encode(), client_ip().encode(), hashlib.sha256).hexdigest()[:32]
 
 
-def check_token(t):
+def lock_left(ns):
+    rec = store.get(f"{ROOT}/sec/lock_{ns}/{_ip_hash()}")
+    if isinstance(rec, dict):
+        return max(to_int(rec.get("until")) - int(time.time()), 0)
+    return 0
+
+
+def lock_fail(ns, threshold, base):
+    path = f"{ROOT}/sec/lock_{ns}/{_ip_hash()}"
+    rec = store.get(path)
+    rec = rec if isinstance(rec, dict) else {}
+    now = int(time.time())
+    n = to_int(rec.get("n")) + 1 if now - to_int(rec.get("t")) < 86400 else 1
+    until = now + min(base * 2 ** (n - threshold), 86400) if n >= threshold else 0
+    store.put(path, {"n": n, "t": now, "until": until})
+
+
+def lock_clear(ns):
+    store.delete(f"{ROOT}/sec/lock_{ns}/{_ip_hash()}")
+
+
+# ---- admin password (scrypt) + optional TOTP 2FA
+def _b64d(s):
+    return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+
+
+def verify_password(pw, stored):
     try:
-        exp, sig = (t or "").split(".", 1)
-        if int(exp) < time.time():
+        tag, n, r, p, salt, h = stored.split(".")
+        if tag != "scrypt":
             return False
-        good = hmac.new(TOKEN_SECRET, exp.encode(), hashlib.sha256).hexdigest()
-        return hmac.compare_digest(sig.encode(), good.encode())
+        got = hashlib.scrypt(pw.encode("utf-8"), salt=_b64d(salt), n=int(n), r=int(r), p=int(p),
+                             dklen=32, maxmem=128 * 1024 * 1024)
+        return hmac.compare_digest(got, _b64d(h))
     except Exception:
         return False
 
 
+def _totp(secret_b32, counter):
+    key = base64.b32decode(secret_b32 + "=" * (-len(secret_b32) % 8))
+    d = hmac.new(key, counter.to_bytes(8, "big"), hashlib.sha1).digest()
+    o = d[-1] & 15
+    return "%06d" % ((int.from_bytes(d[o:o + 4], "big") & 0x7FFFFFFF) % 1000000)
+
+
+def totp_ok(code):
+    code = re.sub(r"\s", "", code if isinstance(code, str) else "")
+    if not re.fullmatch(r"\d{6}", code):
+        return False
+    now = int(time.time() // 30)
+    last = to_int(store.get(f"{ROOT}/sec/totp_last"))
+    for c in (now - 1, now, now + 1):
+        if c > last and hmac.compare_digest(_totp(ADMIN_TOTP_SECRET, c), code):
+            store.put(f"{ROOT}/sec/totp_last", c)         # a code can never be used twice
+            return True
+    return False
+
+
+# ---- admin sessions: random id in an HttpOnly cookie, only its hash is stored server-side
+def _https():
+    return request.is_secure or request.headers.get("X-Forwarded-Proto", "").split(",")[0].strip() == "https"
+
+
+def _sid_hash(sid):
+    return hashlib.sha256(("sid|" + sid).encode()).hexdigest()
+
+
+def purge_sessions():
+    try:
+        now, n = time.time(), 0
+        for h, rec in (store.get(f"{ROOT}/sessions") or {}).items():
+            if not isinstance(rec, dict) or to_int(rec.get("exp")) < now:
+                store.delete(f"{ROOT}/sessions/{h}")
+                n += 1
+                if n >= 20:
+                    break
+    except Exception:
+        pass
+
+
+def new_session(remember):
+    sid = secrets.token_urlsafe(32)
+    ttl = SESS_LONG if remember else SESS_SHORT
+    now = int(time.time())
+    store.put(f"{ROOT}/sessions/{_sid_hash(sid)}", {"exp": now + ttl, "created": now, "rem": bool(remember)})
+    purge_sessions()
+    return sid, ttl
+
+
+def session_path():
+    sid = request.cookies.get(COOKIE, "")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{40,64}", sid):
+        return None
+    path = f"{ROOT}/sessions/{_sid_hash(sid)}"
+    rec = store.get(path)
+    if not isinstance(rec, dict):
+        return None
+    if to_int(rec.get("exp")) < time.time():
+        store.delete(path)
+        return None
+    return path
+
+
+def csrf_ok():
+    """State-changing admin calls need our custom header + same-origin (plus SameSite=Strict cookie)."""
+    if request.method in ("GET", "HEAD"):
+        return True
+    if request.headers.get("X-Requested-With") != "xenon-admin":
+        return False
+    o = request.headers.get("Origin")
+    if o:
+        try:
+            return urlsplit(o).netloc == request.host
+        except Exception:
+            return False
+    return request.headers.get("Sec-Fetch-Site") in (None, "same-origin")
+
+
+def too_many_adm(left):
+    return jsonify(ok=False, error="Too many attempts", retry=left), 429
+
+
 def norm(k):
     return (k if isinstance(k, str) else "").strip().upper()
-
-
-def is_admin(k):
-    return hmac.compare_digest(norm(k).encode(), ADMIN_KEY.encode())
 
 
 def body():
@@ -244,9 +373,11 @@ def body():
 
 def need_admin(fn):
     def w(*a, **kw):
-        if not check_token(request.headers.get("X-Admin-Token", "")):
-            return jsonify(ok=False, error="Unauthorized"), 401
         try:
+            if not csrf_ok():
+                return jsonify(ok=False, error="Bad request"), 403
+            if not session_path():
+                return jsonify(ok=False, error="Unauthorized"), 401
             return fn(*a, **kw)
         except requests.RequestException:
             return jsonify(ok=False, error="Database error"), 500
@@ -273,16 +404,11 @@ def url_problem(url):
         return "Invalid URL"
     return None
 
-
 # ------------------------------------------------------------------ data helpers
 def get_key(k):
     v = store.get(f"{ROOT}/keys/{k}")
     return v if isinstance(v, dict) else None
 
-
-def main_url():
-    v = store.get(f"{ROOT}/config/main_url")
-    return v if isinstance(v, str) else ""
 
 
 def to_int(v, d=0):
@@ -290,6 +416,68 @@ def to_int(v, d=0):
         return int(float(v))
     except Exception:
         return d
+
+
+def _enc(u):
+    return "enc1:" + FERNET.encrypt(u.encode()).decode()
+
+
+def _dec(v):
+    if not isinstance(v, str) or not v:
+        return ""
+    if v.startswith("enc1:"):
+        try:
+            return FERNET.decrypt(v[5:].encode()).decode()
+        except (InvalidToken, ValueError):
+            return ""
+    return v                                   # legacy plaintext (auto-encrypted on next admin visit)
+
+
+def main_url():
+    if ENV_MAIN_API:
+        return ENV_MAIN_API
+    return _dec(store.get(f"{ROOT}/config/main_url"))
+
+
+def mask_url(u):
+    try:
+        sp = urlsplit(re.sub(r"[{}]", "", u))
+        return f"{sp.scheme}://{sp.hostname}/••••••" if sp.hostname else "hidden"
+    except Exception:
+        return "hidden"
+
+
+def secret_bits(url):
+    """Every piece of the Main API URL that must never appear in any response."""
+    bits = {url.strip()}
+    try:
+        sp = urlsplit(url.strip())
+        if sp.hostname and len(sp.hostname) >= 4:
+            bits.add(sp.hostname)
+        for _, v in parse_qsl(sp.query, keep_blank_values=False):
+            if len(v) >= 6 and not (v.startswith("{") and v.endswith("}")):
+                bits.add(v)
+        for seg in sp.path.split("/"):
+            if len(seg) >= 16:
+                bits.add(seg)
+        if sp.password:
+            bits.add(sp.password)
+    except Exception:
+        pass
+    return sorted((b for b in bits if b), key=len, reverse=True)
+
+
+def scrub(o, bits):
+    if isinstance(o, str):
+        for b in bits:
+            if b in o:
+                o = o.replace(b, "***")
+        return o
+    if isinstance(o, list):
+        return [scrub(x, bits) for x in o]
+    if isinstance(o, dict):
+        return {k: scrub(v, bits) for k, v in o.items()}
+    return o
 
 
 def reserve(k):
@@ -323,6 +511,33 @@ UA = {"User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/1
       "Accept": "application/json, text/plain, */*"}
 
 
+
+class Blocked(requests.RequestException):
+    pass
+
+
+def _fetch(ses, u, params):
+    """GET with manual redirects: every hop is SSRF-checked, body capped at 1 MB."""
+    for _ in range(4):
+        r = ses.get(u, params=params, headers=UA, timeout=(10, UP_TIMEOUT), allow_redirects=False, stream=True)
+        if r.status_code in (301, 302, 303, 307, 308) and r.headers.get("Location"):
+            nxt = urljoin(r.url, r.headers["Location"])
+            r.close()
+            if url_problem(nxt):
+                raise Blocked("blocked redirect")
+            u, params = nxt, None
+            continue
+        buf = b""
+        for chunk in r.iter_content(65536):
+            buf += chunk
+            if len(buf) > 1_000_000:
+                r.close()
+                raise ValueError("upstream too large")
+        r._content, r._content_consumed = buf, True
+        return r
+    raise requests.TooManyRedirects("too many redirects")
+
+
 def build_upstream(url, uid, server):
     url = (url or "").strip().strip('"').strip("'").replace(" ", "")
     if not url.startswith(("http://", "https://")):
@@ -345,8 +560,8 @@ def build_upstream(url, uid, server):
                 ses = requests.Session()
                 if noproxy:
                     ses.trust_env = False
-                return ses.get(u, params=params, headers=UA, timeout=(10, UP_TIMEOUT), allow_redirects=True)
-            except requests.ReadTimeout:
+                return _fetch(ses, u, params)
+            except (requests.ReadTimeout, Blocked):
                 raise
             except requests.RequestException as e:
                 last = e
@@ -463,6 +678,7 @@ def likes_given(d):
     return None
 
 
+
 # ------------------------------------------------------------------ pages / headers
 def _page():
     for d in (BASE, os.getcwd(), "/var/task", os.path.join(BASE, "..")):
@@ -477,14 +693,18 @@ def _page():
 @app.route("/")
 @app.route("/index.html")
 def home():
-    r = make_response(_page())
+    g.nonce = secrets.token_urlsafe(16)                       # per-response CSP nonce (no 'unsafe-inline' scripts)
+    html = _page().replace(b"<script>", ('<script nonce="%s">' % g.nonce).encode())
+    r = make_response(html)
     r.headers["Content-Type"] = "text/html; charset=utf-8"
     return r
 
 
-CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-       "font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; "
-       "frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'")
+def _csp():
+    return ("default-src 'none'; script-src 'self' 'nonce-%s'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; "
+            "frame-ancestors 'none'; base-uri 'none'; form-action 'self'; object-src 'none'; "
+            "upgrade-insecure-requests") % getattr(g, "nonce", "")
 
 
 @app.after_request
@@ -493,10 +713,12 @@ def _headers(resp):
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Referrer-Policy"] = "no-referrer"
-    resp.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    resp.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    resp.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     if resp.mimetype == "text/html":
-        resp.headers["Content-Security-Policy"] = CSP
+        resp.headers["Content-Security-Policy"] = _csp()
     return resp
 
 
@@ -523,24 +745,24 @@ def health():
     return jsonify(ok=True)
 
 
+
+
 # ------------------------------------------------------------------ public api
 @app.route("/api/login", methods=["POST"])
 def login():
-    """One endpoint for both admin and user keys. Wrong keys are rate-limited per IP."""
-    if rl_over("loginfail", 10, 600):
-        return too_many()
-    k = norm(body().get("key"))
-    if KEY_RE.match(k):
-        if is_admin(k):
-            return jsonify(ok=True, role="admin", token=make_token())
-        try:
+    """User access-key login only (admin has its own secure login). Failures are locked out per IP, persistently."""
+    try:
+        if lock_left("usr"):
+            return too_many()
+        k = norm(body().get("key"))
+        if KEY_RE.match(k):
             v = get_key(k)
-        except requests.RequestException:
-            return jsonify(ok=False, error="db"), 500
-        if v:
-            return jsonify(ok=True, role="user", used=to_int(v.get("used")), limit=to_int(v.get("limit")),
-                           active=v.get("active", True) is not False)
-    rl_add("loginfail")
+            if v:
+                return jsonify(ok=True, role="user", used=to_int(v.get("used")), limit=to_int(v.get("limit")),
+                               active=v.get("active", True) is not False)
+        lock_fail("usr", 10, 600)
+    except requests.RequestException:
+        return jsonify(ok=False, error="db"), 500
     return jsonify(ok=False), 401
 
 
@@ -598,7 +820,7 @@ def like():
         return fail(err)
 
     lim, used0 = to_int(v.get("limit")), to_int(v.get("used"))
-    keep = False
+    keep, r = False, None
     try:
         if not url:
             return fail("MAIN API NOT SET")
@@ -606,7 +828,7 @@ def like():
             return fail("MAIN API NOT REACHABLE")
         try:
             r = build_upstream(url, uid, server)
-            data = parse_json(r)
+            data = scrub(parse_json(r), secret_bits(url))      # main API url / key can never reach the client
         except ValueError:
             app.logger.warning("upstream invalid response HTTP %s", getattr(r, "status_code", "?"))
             return fail("MAIN API ERROR: invalid response")
@@ -624,10 +846,65 @@ def like():
             refund(k)
 
 
-# ------------------------------------------------------------------ admin api (token based)
+# ------------------------------------------------------------------ admin api (HttpOnly session cookie)
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    if not csrf_ok():
+        return jsonify(ok=False, error="Bad request"), 403
+    try:
+        left = lock_left("adm")
+        if left:
+            return too_many_adm(left)
+        b = body()
+        user, pw, code, remember = b.get("user"), b.get("pass"), b.get("code"), b.get("remember") is True
+        if not (isinstance(user, str) and isinstance(pw, str)) or len(user) > 100 or len(pw) > 200:
+            user, pw = "", ""
+        ok_user = hmac.compare_digest(user.encode(), ADMIN_USER.encode())
+        ok_pw = verify_password(pw, ADMIN_PASS_HASH)        # always computed -> same timing for wrong user
+        ok = ok_user and ok_pw
+        if ok and ADMIN_TOTP_SECRET:
+            ok = totp_ok(code)
+        if not ok:
+            lock_fail("adm", 5, 900)                          # 5 fails -> 15 min lock, doubling up to 24h
+            time.sleep(0.6)
+            return jsonify(ok=False, error="Invalid credentials"), 401
+        lock_clear("adm")
+        sid, ttl = new_session(remember)
+    except requests.RequestException:
+        return jsonify(ok=False, error="Database error"), 500
+    resp = jsonify(ok=True, remember=remember)
+    resp.set_cookie(COOKIE, sid, max_age=ttl, httponly=True, secure=_https(), samesite="Strict", path="/api/admin")
+    return resp
+
+
+@app.route("/api/admin/logout", methods=["POST"])
+def admin_logout():
+    if not csrf_ok():
+        return jsonify(ok=False, error="Bad request"), 403
+    try:
+        p = session_path()
+        if p:
+            store.delete(p)
+    except requests.RequestException:
+        pass
+    resp = jsonify(ok=True)
+    resp.delete_cookie(COOKIE, path="/api/admin")
+    return resp
+
+
+@app.route("/api/admin/session")
+@need_admin
+def admin_session():
+    return jsonify(ok=True)
+
+
 @app.route("/api/admin/state")
 @need_admin
 def admin_state():
+    raw = store.get(f"{ROOT}/config/main_url")
+    if isinstance(raw, str) and raw and not raw.startswith("enc1:"):
+        store.put(f"{ROOT}/config/main_url", _enc(raw))      # migrate old plaintext -> encrypted
+    url = main_url()
     keys = store.get(f"{ROOT}/keys") or {}
     rows = []
     for k, v in keys.items():
@@ -635,23 +912,27 @@ def admin_state():
             rows.append(dict(key=k, limit=to_int(v.get("limit")), used=to_int(v.get("used")),
                              active=v.get("active", True) is not False, created=v.get("created", 0)))
     rows.sort(key=lambda x: x["created"], reverse=True)
-    return jsonify(ok=True, main_url=main_url(), keys=rows)
+    return jsonify(ok=True, main_url_masked=mask_url(url) if url else "",
+                   main_url_source="env" if ENV_MAIN_API else ("db" if url else "none"), keys=rows)
 
 
 @app.route("/api/admin/url", methods=["POST"])
 @need_admin
 def admin_url():
+    if ENV_MAIN_API:
+        return jsonify(ok=False, error="Main API is locked by server env (MAIN_API_URL)"), 400
     u = (body().get("url") or "")
     u = u.strip() if isinstance(u, str) else ""
+    if not u:
+        return jsonify(ok=False, error="Paste the new Main API URL"), 400
     if len(u) > 800:
         return jsonify(ok=False, error="URL too long"), 400
-    if u:
-        if not u.startswith(("http://", "https://")):
-            return jsonify(ok=False, error="URL must start with http:// or https://"), 400
-        p = url_problem(u)
-        if p:
-            return jsonify(ok=False, error=p), 400
-    store.put(f"{ROOT}/config/main_url", u)
+    if not u.startswith(("http://", "https://")):
+        return jsonify(ok=False, error="URL must start with http:// or https://"), 400
+    p = url_problem(u)
+    if p:
+        return jsonify(ok=False, error=p), 400
+    store.put(f"{ROOT}/config/main_url", _enc(u))           # encrypted at rest, never returned to any client
     return jsonify(ok=True)
 
 
@@ -664,8 +945,8 @@ def admin_gen():
     custom = norm(b.get("key"))
     prefix = re.sub(r"[^A-Z0-9_-]", "", norm(b.get("prefix")))[:20] or "XENON"
     if custom:
-        if not KEY_RE.match(custom) or custom == ADMIN_KEY:
-            return jsonify(ok=False, error="Invalid key (A-Z 0-9 _ - , 3-64 chars)"), 400
+        if not NEW_KEY_RE.match(custom):
+            return jsonify(ok=False, error="Invalid key (A-Z 0-9 _ - , 8-64 chars)"), 400
         if get_key(custom):
             return jsonify(ok=False, error="Key already exists"), 400
         names = [custom]
@@ -673,8 +954,8 @@ def admin_gen():
         alpha = string.ascii_uppercase + string.digits
         names = []
         while len(names) < count:
-            n = prefix + "_" + "".join(secrets.choice(alpha) for _ in range(12))
-            if n != ADMIN_KEY and n not in names and not get_key(n):
+            n = prefix + "_" + "".join(secrets.choice(alpha) for _ in range(16))
+            if n not in names and not get_key(n):
                 names.append(n)
     now = int(time.time())
     for n in names:
